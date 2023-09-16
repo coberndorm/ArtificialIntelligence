@@ -54,9 +54,10 @@ def train_test_val(data, sizes=(60, 20, 20)):
     
     # Create arrays for the training, testing, and validation sets.
     train = np.array([data[i] for i in idxTrain])
-    test, valid = np.array([data[idx[i]] for i in idxTest]), np.array([data[idx[i]] for i in idxValid])
+    test = np.array([data[idx[i]] for i in idxTest])
+    valid = np.array([data[idx[i]] for i in idxValid])
     
-    return train, test, valid
+    return train, test, valid, (idxTrain, [idx[i] for i in idxTest], [idx[i] for i in idxValid])
 
 def normalize_min_max(matrix):
     """

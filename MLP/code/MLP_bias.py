@@ -47,7 +47,7 @@ class Perceptron(object):
         self.output = input
         return self.output
     
-    def backward(self, error: np.ndarray) -> list(float):
+    def backward(self, error: np.ndarray) -> list:
         """
         Performs the backward pass to update the network's weights.
 
@@ -59,18 +59,63 @@ class Perceptron(object):
 
         """
         #Initializing an array for the mean of the gradients in every layer
-        gradients = [0] * self.n_layers
+        gradients = [0] * self.num_layers
 
         # Backpropagation for output layer
-        gradients[-1] = self.neurons[-1].backward(-np.sum(error), 1)
+        gradients[-1] = self.layers[-1].backward(np.sum(error), 1, True)
         
         # Backpropagation for all the other layers
-        for i in reversed(range(self.n_layers - 1)):
-            gradients[i] = self.neurons[i].backward(self.neurons[i + 1].weights, gradients[i+1])
+        for i in reversed(range(self.num_layers - 1)):
+            gradients[i] = self.layers[i].backward(self.layers[i + 1].weights, gradients[i+1])
 
         return gradients
-    
 
+    def train(self, data_x: np.ndarray, data_y: np.ndarray, epochs: int) -> list:
+        """
+        Trains the neural network on the given data using backpropagation.
+
+        Args:
+        - data (array): Input data with the last value the target column.
+        - epochs (int): Number of training epochs.
+
+        Returns:
+        - gradients (list): List of gradients computed during training.
+
+        """
+
+        # Defining the train and test set
+        train_x, test_x, _, idx = train_test_val(data_x, (75,25,0))
+        train_y = data_y[idx[0]]; test_y = data_y[idx[1]]
+        print(train_x.shape, train_y.shape, test_x.shape, test_y.shape)
+
+        # Check Y dimensions are of the size of the output layer
+        assert len(train_y[0]) if type(train_y[0])==np.ndarray else 1 == self.num_neurons[-1]
+
+        # Define auxiliary variables
+        data_len = len(train_x)
+        gradients = [0] * data_len * epochs
+        instant_energy_train = [0] * data_len * epochs; instant_average_energy_test = [0]*epochs
+        counter = 0
+
+        for epoch in range(epochs):
+            for i, stimuli in enumerate(train_x):
+              y_pred = self.forward(np.array([stimuli]))
+              error = np.array(train_y[i] - y_pred)
+
+              instant_energy_train[counter] = np.sum(error**2)/2
+              gradients[counter] = self.backward(error)
+              counter += 1
+              if  instant_energy_train[counter-1] < 0.01:  
+                break
+              
+            #Test error
+            error_test = np.array([test_y[i] - self.forward(x) for i,x in enumerate(test_x)])
+            instant_average_energy_test[epoch] = np.mean(error_test**2)/2
+
+            if instant_average_energy_test[epoch] < 0.01:
+              break
+
+        return gradients, instant_energy_train, instant_average_energy_test
 
 class Layer():
     def __init__(self, num_inputs: int, num_neurons:int, activation: object, eta:float) -> None:
@@ -85,8 +130,8 @@ class Layer():
         """
 
         # Initialize weights randomly (you can uncomment the random initialization below)
-        #self.weights = np.random.randn(num_neurons, num_inputs) * 2 - 1
-        self.weights = np.ones((num_neurons, num_inputs))
+        self.weights = np.random.randn(num_neurons, num_inputs) *2 -1
+        #self.weights = np.ones((num_neurons, num_inputs))
 
         # Initialize bias randomly (you can uncomment the random initialization below)
         #self.bias = np.random.randn(num_neurons, 1) * 2 - 1
@@ -117,7 +162,7 @@ class Layer():
         self.output = self.activation.forward(self.field)
         return self.output
     
-    def backward(self, weights_prev, local_gradient_prev):
+    def backward(self, weights_prev: np.ndarray, local_gradient_prev: np.ndarray, first = False) -> np.ndarray:
         """
         Performs backpropagation for the layer.
 
@@ -133,10 +178,10 @@ class Layer():
         phi_prime = self.activation.backward(self.field)  # Compute the derivative of the activation function
 
         # Compute local gradient for this layer using chain rule and weights from the next layer
-        local_gradient = np.multiply(np.vstack((phi_prime,1)), np.dot(weights_prev.T, local_gradient_prev))
+        local_gradient = np.multiply(phi_prime, np.dot(weights_prev[:,0:-1].T if not first else weights_prev, local_gradient_prev))
 
         # Compute weight update using the local gradient and input stimuli
-        delta = np.dot(local_gradient, self.stimuli) # Weight and bias change
+        delta = np.dot(local_gradient, np.vstack((self.input,1)).T) # Weight and bias change
         assert delta.shape == self.weights.shape
 
         # Update weights using the learning rate and calculated delta

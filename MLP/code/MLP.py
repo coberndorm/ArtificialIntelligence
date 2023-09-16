@@ -87,7 +87,7 @@ class perceptron:
         gradients_mean = [0] * self.n_layers
 
         # Backpropagation for output layer
-        local_gradient_prev = self.neurons[-1].backward(-np.sum(error), 1)
+        local_gradient_prev = self.neurons[-1].backward(np.sum(error), 1)
         gradients_mean[-1] = np.mean(local_gradient_prev)
 
         # Backpropagation for all the other layers
