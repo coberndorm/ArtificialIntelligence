@@ -2,7 +2,7 @@ import numpy as np
 from activationFunctions import *
 from dataManipulation import * 
 
-class perceptron:
+class Perceptron:
     """
     A simple implementation of a multi-layer perceptron (MLP) neural network.
 
@@ -98,7 +98,7 @@ class perceptron:
         return gradients_mean
 
 
-    def train(self, data, epochs):
+    def train(self, data_x: np.ndarray, data_y: np.ndarray, epochs: int) -> list:
         """
         Trains the neural network on the given data using backpropagation.
 
@@ -111,11 +111,10 @@ class perceptron:
 
         """
 
-        #This part of the code cannot yet withstand multiple outputs
         # Defining the train and test set
-        train, test, _ = train_test_val(data, (75,25,0))
-        train_x, train_y = train[:,0:-1], train[:,-1]
-        test_x, test_y = test[:,0:-1], test[:,-1]
+        train_x, test_x, _, idx = train_test_val(data_x, (75,25,0))
+        train_y = data_y[idx[0]]; test_y = data_y[idx[1]]
+        print(train_x.shape, train_y.shape, test_x.shape, test_y.shape)
 
         # Check Y dimensions are of the size of the output layer
         #assert len(train_y[0]) == self.n_neurons[-1]
@@ -140,7 +139,7 @@ class perceptron:
             instant_average_energy_train[epoch] = np.mean(instant_energy_train[epoch*data_len:epoch*data_len+data_len])
 
             #Test error
-            error_test = test_y - self.forward(test_x)
+            error_test = test_y - self.forward(test_x).T
             instant_average_energy_test[epoch] = np.mean(error_test**2)/2
             if instant_average_energy_test[epoch] < 0.02:
               break
@@ -149,7 +148,7 @@ class perceptron:
 
         return gradients, gradient_epochs, instant_energy_train, instant_average_energy_train, instant_average_energy_test
     
-    def train_batch(self, data, epochs=50, iterations=10):
+    def train_batch(self,  data_x: np.ndarray, data_y: np.ndarray, epochs=50, iterations=10):
         """
         Train the neural network using mini-batch gradient descent.
 
@@ -166,27 +165,27 @@ class perceptron:
         - instant_average_energy_test (list): List of average energy values during testing.
 
         """
-        # Split data into training and testing sets
-        train, test, _ = train_test_val(data, (75, 25, 0))
+        # Defining the train and test set
+        train_x, test_x, _, idx = train_test_val(data_x, (75,25,0))
+        train_y = data_y[idx[0]]; test_y = data_y[idx[1]]
+        print(train_x.shape, train_y.shape, test_x.shape, test_y.shape)
 
         # Initialize counters and auxiliary variables
         counter = 0
-        data_len = len(train)
+        data_len = len(train_x)
         gradients = [0] * iterations * epochs;   gradient_epochs = [0] * iterations
         instant_energy_train = [0] * epochs * iterations;  instant_average_energy_train = [0] * iterations
         instant_average_energy_test = [0] * epochs * iterations
 
         
-        # Split the training data into input and target
-        train_x, train_y = train[:, 0:-1], train[:, -1]
-        test_x, test_y = test[:, 0:-1], test[:, -1]
+        
 
         for iter in range(iterations):
 
             for epoch in range(epochs):
                 # Forward pass for the entire training set
                 y_pred = self.forward(train_x)
-                error = train_y - y_pred
+                error = train_y - y_pred.T
 
                 # Find the index with the largest error
                 idx = np.argmax(error[0])
@@ -197,7 +196,7 @@ class perceptron:
                 gradients[counter] = self.backward(error[0][idx])
 
                 # Test error
-                error_test = test_y - self.forward(test_x)
+                error_test = test_y - self.forward(test_x).T
                 instant_average_energy_test[counter] = np.mean(error_test**2) / 2
 
                 # Early stopping if test error is below a threshold
@@ -205,11 +204,6 @@ class perceptron:
                     print("Paroooo")
                     counter += epochs-epoch-1
                     break
-                elif instant_average_energy_test[counter] > instant_energy_train[counter] +0.5 :
-                    # If the testing error is considerably higher than the training one, resample
-                    print("Resampleooo")
-                    train_x, train_y = train[:, 0:-1], train[:, -1]
-                    test_x, test_y = test[:, 0:-1], test[:, -1]
                 counter += 1
 
             # Compute average gradient and average energy for the current iteration
@@ -252,7 +246,7 @@ class Layer:
         # Initialize weights with ones (you can uncomment the random initialization below)
         self.weights = np.random.randn(n_neurons, n_inputs) * 2 - 1
         #self.weights = np.ones((n_neurons, n_inputs))
-        self.activation = activation()  # Create an instance of the provided activation function
+        self.activation = activation  # Create an instance of the provided activation function
         # Learning rate (you can adjust this)
         self.eta = eta
 
