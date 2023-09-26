@@ -1,6 +1,6 @@
 import numpy as np
-from activationFunctions import *
-from dataManipulation import * 
+from MLP.activationFunctions import *
+from MLP.dataManipulation import * 
 
 class Perceptron(object):
     def __init__(self,  num_inputs: int, num_neurons: list, num_outputs: int, func_activation: list, eta = 0.01) -> None:
@@ -70,7 +70,7 @@ class Perceptron(object):
 
         return gradients
 
-    def train(self, data_x: np.ndarray, data_y: np.ndarray, epochs: int) -> list:
+    def train(self, data_x: np.ndarray, data_y: np.ndarray, epochs: int, max_error = 1.5, min_energy=0.01) -> list:
         """
         Trains the neural network on the given data using backpropagation.
 
@@ -86,7 +86,7 @@ class Perceptron(object):
         # Defining the train and test set
         train_x, test_x, _, idx = train_test_val(data_x, (75,25,0))
         train_y = data_y[idx[0]]; test_y = data_y[idx[1]]
-        print(train_x.shape, train_y.shape, test_x.shape, test_y.shape)
+        #print(train_x.shape, train_y.shape, test_x.shape, test_y.shape)
 
         # Check Y dimensions are of the size of the output layer
         assert len(train_y[0]) if type(train_y[0])==np.ndarray else 1 == self.num_neurons[-1]
@@ -105,15 +105,26 @@ class Perceptron(object):
               instant_energy_train[counter] = np.sum(error**2)/2
               gradients[counter] = self.backward(error)
               counter += 1
-              if  instant_energy_train[counter-1] < 0.01:  
+              if  instant_energy_train[counter-1] < min_energy:  
                 break
               
             #Test error
-            error_test = np.array([test_y[i] - self.forward(x) for i,x in enumerate(test_x)])
+            error_test = np.array([test_y[j] - self.forward(x) for j,x in enumerate(test_x)])
             instant_average_energy_test[epoch] = np.mean(error_test**2)/2
 
-            if instant_average_energy_test[epoch] < 0.01:
+            if instant_average_energy_test[epoch] < min_energy:
               break
+            
+            if np.max(np.abs(instant_average_energy_test[epoch] - np.mean(instant_energy_train[counter - i:counter]))) > max_error:
+                #print("Resampleo")
+                train_x, test_x, _, idx = train_test_val(data_x, (75,25,0))
+                train_y = data_y[idx[0]]; test_y = data_y[idx[1]]
+                for i in range(self.num_layers):
+                    self.layers[i].redefine_vals()
+                
+                gradients, instant_energy_train, instant_average_energy_test = self.train(data_x, data_y, 50, max_error + 0.01, min_energy + 0.001)
+                return gradients, instant_energy_train, instant_average_energy_test
+
 
         return gradients, instant_energy_train, instant_average_energy_test
 
@@ -189,3 +200,8 @@ class Layer():
         self.weights = weights_new
 
         return local_gradient
+    
+    def redefine_vals(self):
+        self.weights = np.random.randn(self.weights.shape[0], self.weights.shape[1] - 1) *2 -1
+        self.bias = np.ones((self.weights.shape[0], 1))
+        self.weights = np.hstack((self.weights, self.bias))

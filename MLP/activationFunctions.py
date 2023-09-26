@@ -83,3 +83,30 @@ class linear:
         """Compute the gradient of the linear transformation."""
         length = int(len(output))
         return np.array([[self.a]] * length)  # Gradient is constant for all inputs.
+
+import numpy as np
+
+class ReLU:
+    """
+    Rectified Linear Unit (ReLU) Activation Function
+
+    This class implements the ReLU activation function and its derivative.
+
+    Methods:
+    - forward(input): Compute the ReLU activation of the input.
+    - backward(output): Compute the derivative of the ReLU function.
+
+    Attributes:
+    - back: The derivative of the ReLU function during the backward pass.
+    """
+    def __init__(self, a=1) -> None:
+        self.a = a
+        pass
+
+    def forward(self, input):
+        """Compute the Rectified Linear Unit (ReLU) activation of the input."""
+        return np.maximum(0, self.a*input)
+
+    def backward(self, output):
+        """Compute the derivative of the ReLU function."""
+        return np.where(output > 0, self.a, 0)

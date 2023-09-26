@@ -1,6 +1,6 @@
 import numpy as np
-from activationFunctions import *
-from dataManipulation import * 
+from MLP.activationFunctions import *
+from MLP.dataManipulation import * 
 
 class Perceptron:
     """
@@ -98,7 +98,7 @@ class Perceptron:
         return gradients_mean
 
 
-    def train(self, data_x: np.ndarray, data_y: np.ndarray, epochs: int) -> list:
+    def train(self, data_x: np.ndarray, data_y: np.ndarray, epochs: int, max_error = 1.5, min_energy = 0.01) -> list:
         """
         Trains the neural network on the given data using backpropagation.
 
@@ -141,8 +141,15 @@ class Perceptron:
             #Test error
             error_test = test_y - self.forward(test_x).T
             instant_average_energy_test[epoch] = np.mean(error_test**2)/2
-            if instant_average_energy_test[epoch] < 0.02:
+            if instant_average_energy_test[epoch] < min_energy:
               break
+            
+            if np.max(np.abs(instant_average_energy_test[epoch] - np.mean(instant_energy_train[counter - i:counter]))) > max_error:
+                #print("Resampleo")
+                train_x, test_x, _, idx = train_test_val(data_x, (75,25,0))
+                train_y = data_y[idx[0]]; test_y = data_y[idx[1]]
+                for i in range(self.num_layers):
+                    self.layers[i].redefine_vals()
 
             #print(error_p.shape, test_y.shape, self.forward(np.array(test_x)).shape)
 
@@ -297,3 +304,6 @@ class Layer:
         self.weights = weights_new
 
         return self.local_gradient
+    
+    def redefine_vals(self):
+        self.weights = np.random.randn(self.weights.shape[0], self.weights.shape[1]) *2 -1

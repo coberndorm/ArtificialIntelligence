@@ -73,8 +73,8 @@ def normalize_min_max(matrix):
     - normalized_matrix: The normalized matrix.
     """
     # Calculate the minimum and maximum values in the matrix.
-    min_val = np.min(matrix)
-    max_val = np.max(matrix)
+    min_val = np.min(matrix, axis=0)
+    max_val = np.max(matrix, axis=0)
     
     # Normalize the matrix using Min-Max scaling.
     normalized_matrix = (matrix - min_val) / (max_val - min_val)
