@@ -5,13 +5,13 @@ def generate_grid_vertices(dim: int, partitions: float, a = 0, b = 1) -> list(tu
     Generate all vertices in an n-dimensional grid with specified partitions.
 
     Parameters:
-    - dim: The number of dimensions.
-    - partitions: The distance between each vertex.
-    - a: The lower bound of the grid.
-    - b: The upper bound of the grid.
+        - dim: The number of dimensions.
+        - partitions: The distance between each vertex.
+        - a: The lower bound of the grid.
+        - b: The upper bound of the grid.
 
     Returns:
-    - A list of tuples representing the coordinates of all grid vertices.
+        - A list of tuples representing the coordinates of all grid vertices.
     """
 
     # Base case: 0-dimensional grid
@@ -130,13 +130,13 @@ def boxes_cluster(dist: np.ndarray, clusters=4, step = 0.5, sort="boxes", symmet
 
 
 # Function to cluster points based on their distances in a distance matrix
-def nearby_cluster(dist, max_dist=0.1, max_clusters=4):
+def nearby_cluster(dist, epsilon=0.1, max_clusters=4):
     """
     Cluster points based on their distances in a distance matrix.
 
     Parameters:
         - dist: The distance matrix (points to themselves).
-        - max_dist: The maximum distance to consider two points as neighbors (default is 0.1).
+        - epsilon: The maximum distance to consider two points as neighbors (default is 0.1).
         - max_clusters: The maximum number of clusters to create (default is 4).
 
     Returns:
@@ -156,8 +156,8 @@ def nearby_cluster(dist, max_dist=0.1, max_clusters=4):
         # Choose a random starting point
         start_point = np.random.choice(list(points))
 
-        # Initialize the current cluster with the points that are within 'max_dist' of the starting point
-        clusters[current_cluster] = {x for x in np.where(dist[start_point] < max_dist)[0]}
+        # Initialize the current cluster with the points that are within 'epsilon' of the starting point
+        clusters[current_cluster] = {x for x in np.where(dist[start_point] < epsilon)[0]}
         current_cluster_checked = {start_point}
 
         # Continue expanding the current cluster until no new points can be added
@@ -165,7 +165,7 @@ def nearby_cluster(dist, max_dist=0.1, max_clusters=4):
             currently_checking = clusters[current_cluster].copy()
             for i in currently_checking:
                 if i not in current_cluster_checked:
-                    close_to_i = {x for x in np.where(dist[i] < max_dist)[0]}
+                    close_to_i = {x for x in np.where(dist[i] < epsilon)[0]}
                     clusters[current_cluster].update(close_to_i)
                     current_cluster_checked.add(i)
 
@@ -210,6 +210,66 @@ def nearby_cluster(dist, max_dist=0.1, max_clusters=4):
     return clusters
 
 
+import numpy as np
 
+def DBSCAN_cluster(dist, epsilon, min_samples):
+    """
+    Cluster data points using the DBSCAN (Density-Based Spatial Clustering of Applications with Noise) algorithm.
 
+    Parameters:
+        - dist: 2D numpy array, a distance matrix where dist[i, j] represents the distance between data point i and j.
+        - epsilon: float, maximum distance between two points for one to be considered as in the neighborhood of the other.
+        - min_samples: int, the minimum number of data points required to form a dense region (cluster).
 
+    Returns:
+        - clusters: dict, a dictionary where keys represent cluster labels, and values are sets of data points in each cluster.
+        - Noise points are assigned to cluster label -1.
+
+    Note:
+        - This function operates on a distance matrix of data points to themselves.
+    """
+
+    # Define a function to find neighbors within a given distance epsilon
+    find_neighbors = lambda x: np.where(x <= epsilon)[0]
+    n = dist.shape[0]  # Number of data points
+    
+    # Create a dictionary to store the clusters
+    clusters = dict()
+    
+    # Initialize auxiliary variables
+    points_len = len(dist)
+    points = set(range(0, points_len))
+    current_cluster = 1  # Start with the first cluster
+    
+    # Iterate over each data point
+    for point in range(n):
+        if point not in points:
+            continue  # Skip if this point has been assigned to a cluster already
+        
+        # Find the neighbors of the current point within the epsilon distance
+        neighbors = find_neighbors(dist[point])
+        
+        # Check if the current point has enough neighbors to form a cluster
+        if len(neighbors) >= min_samples:
+            # Initialize a new cluster and add the neighbors to it
+            clusters[current_cluster] = {x for x in neighbors}
+            current_cluster_checked = {point}  # Mark the current point as checked
+            
+            # Continue to expand the cluster until no more points can be added
+            while len(current_cluster_checked) != len(clusters[current_cluster]):
+                currently_checking = clusters[current_cluster].copy()
+                for i in currently_checking:
+                    if i not in current_cluster_checked:
+                        # Find points close to 'i' and add them to the cluster
+                        close_to_i = {x for x in np.where(dist[i] <= epsilon)[0]}
+                        clusters[current_cluster].update(close_to_i)
+                        current_cluster_checked.add(i)
+            
+            # Remove the points in this cluster from the unassigned points set
+            points.difference_update(clusters[current_cluster])
+            current_cluster += 1  # Move to the next cluster
+    
+    # Assign unassigned points to a noise cluster (-1)
+    clusters[-1] = points
+    
+    return clusters
