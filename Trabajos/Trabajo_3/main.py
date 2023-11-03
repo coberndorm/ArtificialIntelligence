@@ -57,6 +57,10 @@ if __name__ == '__main__':
 
     data_path = sys.argv[1]
 
+    #TODO Statistichal analysis
+    #TODO add preprocessing (normalization and hot encoding)
+    #TODO clustering, different types
+    #TODO save an html page with the results
     delete_venv(".venv")
 
     sys.exit(0)

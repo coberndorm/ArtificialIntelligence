@@ -98,15 +98,14 @@ def distance_matrix(data_X: np.ndarray, data_Y = None, metric = "euclidean", par
             for j in range(m):
                 if parameter == None: distance = metric(data_X[i],data_Y[j])
                 else: distance = metric(data_X[i],data_Y[j], parameter)
-                distance = metric(data_X[i],data_Y[j], parameter)
                 distances[i,j] = distance
 
         return distances
         
-    if data_Y == None:
-        return distance_matrix_self(data_X, metric)
-    else:
+    if data_Y is not None:
         return distance_matrix_compare(data_X, data_Y, metric)
+    else:
+        return distance_matrix_self(data_X, metric)
 
 # Rearrange a distance matrix 'dist' to have sorted rows and columns
 def sort_dist_matrix_distance(dist: np.ndarray) -> np.ndarray:

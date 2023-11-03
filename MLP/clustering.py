@@ -16,7 +16,7 @@ def generate_grid_vertices(dim: int, partitions: float, a = 0, b = 1) -> list(tu
 
     # Base case: 0-dimensional grid
     if dim == 0:
-        return [()]
+        return [[]]
     # Recursive case: n-dimensional grid
     else:
         # Generate the vertices of an (n-1)-dimensional grid
@@ -26,7 +26,7 @@ def generate_grid_vertices(dim: int, partitions: float, a = 0, b = 1) -> list(tu
         for coord in lower_dimension:
             # Add vertices in each dimension
             for offset in [i*((b-a)/(partitions-1)) for i in range(partitions)]:
-                new_coord = coord + (offset,)
+                new_coord = coord + [offset,]
                 vertices.append(new_coord)
         return vertices
     
@@ -273,3 +273,5 @@ def DBSCAN_cluster(dist, epsilon, min_samples):
     clusters[-1] = points
     
     return clusters
+
+
